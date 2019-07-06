@@ -1,7 +1,8 @@
 require 'io/console'
+require 'json'
 
 class HangmanGame
-    MAX_INCORRET_GUESSES = 7
+    MAX_INCORRET_GUESSES = 10
 
     def initialize
         @secretWord = ""
@@ -26,9 +27,50 @@ class HangmanGame
             puts "invalid option, try again"
         end
         system("clear")
+        @gameOver = false
 
         newGame() if option == 1
+        loadGame() if option == 2 
+        return if option == 3
          
+    end
+
+    def loadGame
+        
+        system("clear")
+        playerData = JSON.parse(File.read("saved_games/data_player.json"))
+        
+        @secretWord = playerData["secretWord"]
+        @dashesRow = playerData["playerRow"]
+        @turn = playerData["currentTurn"]
+        @misses = playerData["playerMisses"]
+       
+        puts "game loaded!"
+        print "press any key to continue.."                                                                                                    
+        STDIN.getch 
+        currentGame()
+
+    end
+
+    def saveGame
+        
+        Dir.mkdir("saved_games") unless File.exists?("saved_games")
+        filename = "saved_games/data_player.json"
+        playerData = {
+            secretWord: @secretWord,
+            playerRow: @dashesRow,
+            currentTurn: @turn,
+            playerMisses: @misses
+        }
+       
+        File.open(filename,'w') do |file|
+            file.puts JSON.dump(playerData)
+        end
+        puts "game saved .... returning to main menu"
+        print "press any key to continue.."                                                                                                    
+        STDIN.getch 
+        gameMenu()
+
     end
 
     def newGame
@@ -90,6 +132,19 @@ class HangmanGame
             @misses += 1
         end
         @turn += 1
+
+        system("clear")
+        displayGame()
+
+        puts "1.Continue game"
+        puts "2.Save game"
+        while true 
+             playerInput = STDIN.getch()
+            break if playerInput.match(/[[1-2]]/)
+            puts "invalid input, try again"
+        end
+
+        saveGame() if playerInput == "2"
         
     end
    
