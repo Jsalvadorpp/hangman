@@ -10,11 +10,12 @@ class HangmanGame
         @turn = 1
         @misses = 0
         @gameOver = false
+        Dir.mkdir("saved_games") unless File.exists?("saved_games")
         gameMenu()
     end
 
     def gameMenu
-
+        
         system("clear")
         puts "*** HangMan Game ***"
         puts "choose a number"
@@ -31,31 +32,104 @@ class HangmanGame
 
         newGame() if option == 1
         loadGame() if option == 2 
-        return if option == 3
+        exit if option == 3
          
     end
 
     def loadGame
         
         system("clear")
-        playerData = JSON.parse(File.read("saved_games/data_player.json"))
+        saveList = Dir.glob("saved_games/*")
+
+        if saveList.empty?
+            puts "there's no save files"
+            puts "returning to the main menu"
+            print "press any key to continue.."                                                                                                    
+            STDIN.getch 
+            gameMenu()
+        else
+            puts "choose a file"
+            saveList.each_with_index do |file,index|
+                puts "#{index+1}.#{File.basename(file,".json")}"
+            end
+
+            while true 
+                playerInput = gets.chomp.to_i
+                break if playerInput.between?(1,saveList.length)
+                puts "invalid input, try again"
+            end
+
+            chooseSave = File.basename(saveList[playerInput-1],".json")
+          
+            system("clear")
+            puts "choosen save: #{chooseSave}"
+            puts "choose an option:"
+            puts "1.Load Save"
+            puts "2.Delete Save"
+            while true 
+                option = gets.chomp.to_i
+                break if option.between?(1,2) 
+                puts "invalid option, try again"
+            end
+
+        end
+
+        system("clear")
+
+        if option == 1      #load save
+
+            playerData = JSON.parse(File.read("saved_games/#{chooseSave}.json"))
         
-        @secretWord = playerData["secretWord"]
-        @dashesRow = playerData["playerRow"]
-        @turn = playerData["currentTurn"]
-        @misses = playerData["playerMisses"]
-       
-        puts "game loaded!"
-        print "press any key to continue.."                                                                                                    
-        STDIN.getch 
-        currentGame()
+            @secretWord = playerData["secretWord"]
+            @dashesRow = playerData["playerRow"]
+            @turn = playerData["currentTurn"]
+            @misses = playerData["playerMisses"]
+           
+            puts "#{chooseSave} loaded!"
+            print "press any key to continue.."                                                                                                    
+            STDIN.getch 
+            currentGame()
+
+        elsif option == 2          #delete save
+
+            File.delete("saved_games/#{chooseSave}.json")
+            puts "save : #{chooseSave} deleted!"
+            puts "returning to main menu"
+            print "press any key to continue.."                                                                                                    
+            STDIN.getch 
+            gameMenu()
+
+        end
 
     end
 
     def saveGame
-        
-        Dir.mkdir("saved_games") unless File.exists?("saved_games")
-        filename = "saved_games/data_player.json"
+
+        saveList = Dir.glob("saved_games/*")
+       
+        while true 
+
+            puts "Insert save file name"
+            saveName = gets.chomp
+            filename = "saved_games/#{saveName}.json"
+
+            if saveList.include?(filename)
+                puts "#{saveName} save will be overwrite"
+                puts "are you sure about that? press y/n"
+
+                while true
+                    playerInput = STDIN.getch().downcase
+                    break if playerInput == "y" || playerInput == "n"
+                    puts "invalid input, try again"
+                end
+
+            else
+                break
+            end
+
+            break if playerInput == "y"
+        end
+
         playerData = {
             secretWord: @secretWord,
             playerRow: @dashesRow,
@@ -66,6 +140,7 @@ class HangmanGame
         File.open(filename,'w') do |file|
             file.puts JSON.dump(playerData)
         end
+
         puts "game saved .... returning to main menu"
         print "press any key to continue.."                                                                                                    
         STDIN.getch 
